@@ -1,0 +1,24 @@
+{
+  "CMA-SAM (Ours)": {
+    "Simple Class Name": {
+      "dsc": 87.46542396545411,
+      "ale_px": 2.949167284220457
+    },
+    "Complex Clinical Text": {
+      "dsc": 87.52301048278808,
+      "ale_px": 3.210978222042322
+    },
+    "delta_dsc": 0.057586517333973575
+  },
+  "Simple-ViLMedSAM (Dense Baseline)": {
+    "Simple Class Name": {
+      "dsc": 89.26123481750489,
+      "ale_px": null
+    },
+    "Complex Clinical Text": {
+      "dsc": 88.60551895141602,
+      "ale_px": null
+    },
+    "delta_dsc": 0.6557158660888689
+  }
+}

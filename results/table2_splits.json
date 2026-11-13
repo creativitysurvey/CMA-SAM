@@ -1,0 +1,14 @@
+{
+  "Kvasir-SEG": {
+    "modality": "Endoscopy",
+    "train": 800,
+    "val": 100,
+    "test": 100
+  },
+  "ISIC 2018": {
+    "modality": "Dermatology",
+    "train": 2075,
+    "val": 259,
+    "test": 260
+  }
+}

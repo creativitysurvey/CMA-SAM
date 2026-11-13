@@ -1,0 +1,174 @@
+{
+  "metrics": {
+    "Channel-wise Concatenation": {
+      "Kvasir-SEG": {
+        "dsc": 88.4610971069336,
+        "ale_px": 3.020200137272477
+      },
+      "ISIC": {
+        "dsc": 90.51272289569562,
+        "ale_px": 1.183602300687478
+      }
+    },
+    "Hadamard Product": {
+      "Kvasir-SEG": {
+        "dsc": 88.51227058410645,
+        "ale_px": 3.0022633306495847
+      },
+      "ISIC": {
+        "dsc": 90.5728439624493,
+        "ale_px": 1.208676376215254
+      }
+    },
+    "Bidirectional Cross-Attention (Ours)": {
+      "Kvasir-SEG": {
+        "dsc": 88.5528254699707,
+        "ale_px": 3.9245806354284287
+      },
+      "ISIC": {
+        "dsc": 89.942462011484,
+        "ale_px": 1.3045206562150269
+      }
+    }
+  },
+  "activation_profiles_1d": {
+    "Channel-wise Concatenation": [
+      {
+        "x": 0,
+        "intensity": 0.3034
+      },
+      {
+        "x": 10,
+        "intensity": 0.1011
+      },
+      {
+        "x": 20,
+        "intensity": 0.0358
+      },
+      {
+        "x": 30,
+        "intensity": 0.4998
+      },
+      {
+        "x": 40,
+        "intensity": 1.0
+      },
+      {
+        "x": 50,
+        "intensity": 0.9633
+      },
+      {
+        "x": 60,
+        "intensity": 0.1446
+      },
+      {
+        "x": 70,
+        "intensity": 0.0035
+      },
+      {
+        "x": 80,
+        "intensity": 0.0
+      },
+      {
+        "x": 90,
+        "intensity": 0.0485
+      },
+      {
+        "x": 100,
+        "intensity": 0.2351
+      }
+    ],
+    "Hadamard Product": [
+      {
+        "x": 0,
+        "intensity": 0.4071
+      },
+      {
+        "x": 10,
+        "intensity": 0.1212
+      },
+      {
+        "x": 20,
+        "intensity": 0.0939
+      },
+      {
+        "x": 30,
+        "intensity": 0.4643
+      },
+      {
+        "x": 40,
+        "intensity": 1.0
+      },
+      {
+        "x": 50,
+        "intensity": 0.9342
+      },
+      {
+        "x": 60,
+        "intensity": 0.2294
+      },
+      {
+        "x": 70,
+        "intensity": 0.0037
+      },
+      {
+        "x": 80,
+        "intensity": 0.0176
+      },
+      {
+        "x": 90,
+        "intensity": 0.0
+      },
+      {
+        "x": 100,
+        "intensity": 0.1692
+      }
+    ],
+    "Bidirectional Cross-Attention (Ours)": [
+      {
+        "x": 0,
+        "intensity": 0.2717
+      },
+      {
+        "x": 10,
+        "intensity": 0.9446
+      },
+      {
+        "x": 20,
+        "intensity": 0.8742
+      },
+      {
+        "x": 30,
+        "intensity": 0.6049
+      },
+      {
+        "x": 40,
+        "intensity": 0.0
+      },
+      {
+        "x": 50,
+        "intensity": 0.0178
+      },
+      {
+        "x": 60,
+        "intensity": 0.6119
+      },
+      {
+        "x": 70,
+        "intensity": 0.8357
+      },
+      {
+        "x": 80,
+        "intensity": 0.8599
+      },
+      {
+        "x": 90,
+        "intensity": 0.782
+      },
+      {
+        "x": 100,
+        "intensity": 1.0
+      }
+    ]
+  }
+}
