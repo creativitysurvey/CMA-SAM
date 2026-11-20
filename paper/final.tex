@@ -238,53 +238,55 @@ To bridge this semantic-to-spatial gap, CMA-SAM introduces a paradigm of discret
 
 Unlike sequential cascaded approaches \cite{aleem2024test, li2024clipsam} that decouple vision and language processing—often resulting in severe error propagation and computational redundancy—CMA-SAM employs a deeply coupled, end-to-end architecture. The framework is designed to seamlessly translate implicit text queries into explicit geometric prompts. 
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \fitwidth{%
 \begin{tikzpicture}[
-    node distance=1.2cm and 1.5cm,
-    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.8cm, minimum height=1.2cm, fill=blue!5, drop shadow, font=\small},
-    data/.style={draw, ellipse, align=center, minimum width=2cm, minimum height=0.8cm, fill=gray!10, font=\footnotesize},
+    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.85cm, minimum height=1.2cm, fill=blue!5, drop shadow, font=\small},
+    data/.style={draw, ellipse, align=center, minimum width=2.05cm, minimum height=0.85cm, inner sep=3pt, fill=gray!10, font=\footnotesize},
     arrow/.style={-Stealth, thick}
 ]
-
 % Input Nodes
-\node[data] (img) {Image $I$};
-\node[data, below=1.5cm of img] (txt) {Text $T$};
+\node[data] (img) at (0, 1.35) {Image $I$};
+\node[data] (txt) at (0, -1.35) {Text $T$};
 
 % Encoders
-\node[box, fill=green!10, right=0.8cm of img] (img_enc) {SAM Image\\Encoder (LoRA)};
-\node[box, fill=green!10, right=0.8cm of txt] (txt_enc) {CLIP Text\\Encoder (Frozen)};
+\node[box, fill=green!10] (img_enc) at (3.2, 1.35) {SAM Image\\Encoder (LoRA)};
+\node[box, fill=green!10] (txt_enc) at (3.2, -1.35) {CLIP Text\\Encoder (Frozen)};
 
-% Fusion
-\node[box, fill=purple!10, right=1.2cm of img_enc, yshift=-1.35cm] (fusion) {Joint Feature\\Fusion Module};
-
-% AAG
-\node[box, fill=orange!10, right=1.2cm of fusion] (aag) {Autonomous Anchor\\Generation (AAG)};
+% Fusion & AAG
+\node[box, fill=purple!10] (fusion) at (7.0, 0) {Joint Feature\\Fusion Module};
+\node[box, fill=orange!10] (aag) at (10.9, 0) {Autonomous Anchor\\Generation (AAG)};
 
 % SAM Native Components
-\node[box, fill=blue!10, right=1.2cm of aag, yshift=1.35cm] (prompt_enc) {SAM Native\\Prompt Encoder};
-\node[box, fill=blue!10, right=1.2cm of aag, yshift=-1.35cm] (mask_dec) {SAM Native\\Mask Decoder};
+\node[box, fill=blue!10] (prompt_enc) at (15.3, 1.35) {SAM Native\\Prompt Encoder};
+\node[box, fill=blue!10] (mask_dec) at (15.3, -1.35) {SAM Native\\Mask Decoder};
 
 % Output
-\node[data, right=0.8cm of mask_dec] (out) {Mask $M_{\text{seg}}$};
+\node[data] (out) at (18.6, -1.35) {Mask $M_{\text{seg}}$};
 
-% Edges
+% Edges: Inputs -> Encoders
 \draw[arrow] (img) -- (img_enc);
 \draw[arrow] (txt) -- (txt_enc);
 
-\draw[arrow] (img_enc.east) -- ++(0.4,0) |- node[above right, font=\footnotesize] {$F_I$} (fusion.west);
-\draw[arrow] (txt_enc.east) -- ++(0.4,0) |- node[below right, font=\footnotesize] {$F_T$} (fusion.west);
+% Encoders -> Fusion (distinct entry ports)
+\draw[arrow] (img_enc.east) -- (5.05, 1.35) -- node[left, font=\footnotesize] {$F_I$} (5.05, 0.25) -- ([yshift=0.25cm]fusion.west);
+\draw[arrow] (txt_enc.east) -- (5.05, -1.35) -- node[left, font=\footnotesize] {$F_T$} (5.05, -0.25) -- ([yshift=-0.25cm]fusion.west);
 
+% Fusion -> AAG
 \draw[arrow] (fusion.east) -- node[above, font=\footnotesize] {$M$} (aag.west);
 
-\draw[arrow] (aag.east) -- ++(0.4,0) |- node[above left, font=\footnotesize] {$\{P, B\}$} (prompt_enc.west);
+% AAG -> Prompt Encoder
+\draw[arrow] (aag.east) -- (12.65, 0) -- (12.65, 1.35) -- node[above, font=\footnotesize] {$\{P, B\}$} (prompt_enc.west);
 
-\draw[arrow] (prompt_enc.south) -- node[right, font=\footnotesize] {Sparse Embeddings} (mask_dec.north);
-\draw[arrow] (img_enc.north) -- ++(0,0.6) -| node[above, pos=0.25, font=\footnotesize] {Dense Image Embeddings $F_I$} (mask_dec.north);
+% Prompt Encoder -> Mask Decoder
+\draw[arrow] ([xshift=-0.45cm]prompt_enc.south) -- node[left, align=right, font=\footnotesize] {Sparse\\Embeddings} ([xshift=-0.45cm]mask_dec.north);
 
+% Dense Image Embeddings bypass routed cleanly around Prompt Encoder (zero box/line crossings)
+\draw[arrow] (img_enc.north) -- (3.2, 2.55) -- node[above, font=\footnotesize] {Dense Image Embeddings $F_I$} (17.25, 2.55) -- (17.25, -0.28) -- (15.95, -0.28) -- ([xshift=0.65cm]mask_dec.north);
+
+% Mask Decoder -> Output
 \draw[arrow] (mask_dec.east) -- (out.west);
-
 \end{tikzpicture}%
 }
 \caption{The end-to-end architectural pipeline of the Cross-Modal Anchor Segment Anything Model (CMA-SAM). The framework translates continuous cross-modal representations into discrete geometric anchors, effectively bridging the semantic-to-spatial gap.}
@@ -330,30 +332,28 @@ where $D$ is the dimensionality of the CLIP latent space. This continuous semant
 
 By keeping $E_T$ completely frozen during training, we preserve the robust, open-vocabulary zero-shot capabilities of CLIP. This ensures that the extracted semantic embedding $F_T$ remains highly generalizable across diverse medical modalities and is not overfit to the limited vocabulary of the training datasets. The overall cross-modal feature extraction pipeline is illustrated in Figure \ref{fig:feature_extraction}.
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \fitwidth{%
 \begin{tikzpicture}[
-    node distance=1.5cm and 2cm,
-    box/.style={draw, rectangle, rounded corners, align=center, minimum width=3cm, minimum height=1.2cm, fill=blue!5, drop shadow, font=\small},
-    data/.style={draw, ellipse, align=center, minimum width=2.5cm, minimum height=1cm, fill=green!5, font=\small},
+    box/.style={draw, rectangle, rounded corners, align=center, minimum width=3.1cm, minimum height=1.2cm, fill=blue!5, drop shadow, font=\small},
+    data/.style={draw, ellipse, align=center, minimum width=2.8cm, minimum height=1.05cm, inner sep=4pt, fill=green!5, font=\small},
     arrow/.style={-Stealth, thick}
 ]
-
 % Visual Branch
-\node[data] (img) {Medical Image\\$I \in \mathbb{R}^{H \times W \times 3}$};
-\node[box, right=of img, fill=blue!10] (sam_enc) {SAM ViT Encoder\\(Frozen)};
-\node[box, below=0.3cm of sam_enc, fill=orange!10, minimum height=0.8cm] (lora) {LoRA Modules\\(Trainable)};
-\node[data, right=of sam_enc] (fv) {Dense Visual Features\\$F_V \in \mathbb{R}^{C \times H_f \times W_f}$};
+\node[data] (img) at (0, 0) {Medical Image\\$I \in \mathbb{R}^{H \times W \times 3}$};
+\node[box, fill=blue!10] (sam_enc) at (4.8, 0) {SAM ViT Encoder\\(Frozen)};
+\node[box, fill=orange!10, minimum height=0.9cm] (lora) at (4.8, -1.75) {LoRA Modules\\(Trainable)};
+\node[data] (fv) at (9.9, 0) {Dense Visual Features\\$F_V \in \mathbb{R}^{C \times H_f \times W_f}$};
 
 % Text Branch
-\node[data, below=1.5cm of img] (text) {Simple Text Query\\$T$ (e.g., "polyp")};
-\node[box, right=of text, fill=purple!10] (clip_enc) {CLIP Text Encoder\\(Frozen)};
-\node[data, right=of clip_enc] (ft) {Semantic Embedding\\$F_T \in \mathbb{R}^{D}$};
+\node[data] (text) at (0, -3.35) {Simple Text Query\\$T$ (e.g., \texttt{"polyp"})};
+\node[box, fill=purple!10] (clip_enc) at (4.8, -3.35) {CLIP Text Encoder\\(Frozen)};
+\node[data] (ft) at (9.9, -3.35) {Semantic Embedding\\$F_T \in \mathbb{R}^{D}$};
 
 % Connections Visual
 \draw[arrow] (img) -- (sam_enc);
-\draw[arrow, dashed] (lora) -- (sam_enc) node[midway, right, font=\footnotesize] {Inject $\Delta W$};
+\draw[arrow, dashed] (lora.north) -- node[midway, right=3pt, font=\footnotesize] {Inject $\Delta W$} (sam_enc.south);
 \draw[arrow] (sam_enc) -- (fv);
 
 % Connections Text
@@ -361,8 +361,7 @@ By keeping $E_T$ completely frozen during training, we preserve the robust, open
 \draw[arrow] (clip_enc) -- (ft);
 
 % Grouping Box for the next stage
-\node[draw, rectangle, dashed, fit=(fv) (ft), inner sep=0.3cm, label=above:\textbf{To Joint Feature Fusion}] (fusion_box) {};
-
+\node[draw, rectangle, dashed, fit=(fv) (ft), inner sep=0.35cm, label={[yshift=2pt]above:\textbf{To Joint Feature Fusion}}] (fusion_box) {};
 \end{tikzpicture}%
 }
 \caption{The Cross-Modal Feature Extraction pipeline of CMA-SAM. The visual branch employs a SAM ViT encoder adapted via parameter-efficient LoRA modules to extract dense visual features $F_V$. Simultaneously, the text branch utilizes a frozen CLIP text encoder to extract a global semantic embedding $F_T$ from simple text queries.}
@@ -405,53 +404,48 @@ The bidirectional cross-attention mechanism inherently acts as a multi-modal inf
 
 By computing the dense affinity matrix $\frac{Q_V K_T^\top}{\sqrt{d}}$, the T2V attention assigns high activation weights exclusively to visual tokens that exhibit strong semantic correspondence with the text prompt. Consequently, this operation sharply highlights the target lesion while aggressively attenuating irrelevant anatomical structures. 
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \fitwidth{%
 \begin{tikzpicture}[
-    node distance=1.5cm and 2cm,
-    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.5cm, minimum height=1cm, fill=blue!5, drop shadow, font=\small},
-    attnbox/.style={draw, rectangle, rounded corners, align=center, minimum width=3cm, minimum height=1.2cm, fill=orange!10, drop shadow, font=\small\bfseries},
+    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.7cm, minimum height=1.15cm, fill=blue!5, drop shadow, font=\small},
+    attnbox/.style={draw, rectangle, rounded corners, align=center, minimum width=3.1cm, minimum height=1.25cm, fill=orange!10, drop shadow, font=\small\bfseries},
     arrow/.style={-Stealth, thick},
-    label/.style={font=\footnotesize}
+    lbl/.style={font=\footnotesize, text=black}
 ]
-
 % Input Nodes
-\node[box, fill=green!10] (vis_in) {Visual Tokens\\$X_V \in \mathbb{R}^{N \times C}$};
-\node[box, fill=green!10, below=2.5cm of vis_in] (txt_in) {Text Tokens\\$X_T \in \mathbb{R}^{L \times C}$};
+\node[box, fill=green!10] (vis_in) at (0, 1.75) {Visual Tokens\\$X_V \in \mathbb{R}^{N \times C}$};
+\node[box, fill=green!10] (txt_in) at (0, -1.75) {Text Tokens\\$X_T \in \mathbb{R}^{L \times C}$};
 
 % Attention Blocks
-\node[attnbox, right=of vis_in] (t2v) {Text-to-Vision\\(T2V) Attention};
-\node[attnbox, right=of txt_in] (v2t) {Vision-to-Text\\(V2T) Attention};
+\node[attnbox] (t2v) at (5.2, 1.75) {Text-to-Vision\\(T2V) Attention};
+\node[attnbox] (v2t) at (5.2, -1.75) {Vision-to-Text\\(V2T) Attention};
 
 % Output Nodes
-\node[box, fill=purple!10, right=of t2v] (vis_out) {Enriched Vision\\$\tilde{X}_V \in \mathbb{R}^{N \times C}$};
-\node[box, fill=purple!10, right=of v2t] (txt_out) {Enriched Text\\$\tilde{X}_T \in \mathbb{R}^{L \times C}$};
+\node[box, fill=purple!10] (vis_out) at (9.5, 1.75) {Enriched Vision\\$\tilde{X}_V \in \mathbb{R}^{N \times C}$};
+\node[box, fill=purple!10] (txt_out) at (9.5, -1.75) {Enriched Text\\$\tilde{X}_T \in \mathbb{R}^{L \times C}$};
 
 % Reshape Node
-\node[box, fill=red!10, right=1cm of vis_out] (reshape) {Spatial\\Reshape};
-\node[right=1cm of reshape, font=\bfseries] (final_M) {$M \in \mathbb{R}^{C \times H \times W}$};
+\node[box, fill=red!10, minimum width=2.2cm] (reshape) at (12.6, 1.75) {Spatial\\Reshape};
+\node[font=\bfseries] (final_M) at (15.4, 1.75) {$M \in \mathbb{R}^{C \times H \times W}$};
 
-% Arrows for T2V
-\draw[arrow] (vis_in) -- node[above, label] {Queries ($Q_V$)} (t2v);
-\draw[arrow] (txt_in.north) -- ++(0,0.5) -| node[near start, right, label] {Keys/Values ($K_T, V_T$)} (t2v.south);
+% Query Arrows
+\draw[arrow] (vis_in) -- node[above=2pt, lbl] {Queries ($Q_V$)} (t2v);
+\draw[arrow] (txt_in) -- node[below=2pt, lbl] {Queries ($Q_T$)} (v2t);
 
-% Arrows for V2T
-\draw[arrow] (txt_in) -- node[below, label] {Queries ($Q_T$)} (v2t);
-\draw[arrow] (vis_in.south) -- ++(0,-0.5) -| node[near start, right, label] {Keys/Values ($K_V, V_V$)} (v2t.north);
+% Separated Cross-Modal Keys/Values Channels (non-collinear risers, zero text strike-through)
+\draw[arrow, blue!70!black] (vis_in.south) -- (0, 0.45) -- node[above=1pt, pos=0.46, lbl] {Keys/Values ($K_V, V_V$)} (4.65, 0.45) -- ([xshift=-0.55cm]v2t.north);
+\draw[arrow, purple!75!black] (txt_in.north) -- (0, -0.45) -- node[below=1pt, pos=0.40, lbl] {Keys/Values ($K_T, V_T$)} (5.75, -0.45) -- ([xshift=0.55cm]t2v.south);
 
-% Output Arrows
+% Output & Reshape Arrows
 \draw[arrow] (t2v) -- (vis_out);
 \draw[arrow] (v2t) -- (txt_out);
-
-% Reshape Arrows
 \draw[arrow] (vis_out) -- (reshape);
 \draw[arrow] (reshape) -- (final_M);
 
-% Residual connections
-\draw[arrow, dashed] (vis_in.north) -- ++(0,0.5) -| (vis_out.north);
-\draw[arrow, dashed] (txt_in.south) -- ++(0,-0.5) -| (txt_out.south);
-
+% Residual Skip Connections
+\draw[arrow, dashed] (vis_in.north) -- (0, 2.85) -- node[above, font=\scriptsize] {Residual $X_V$} (9.5, 2.85) -- (vis_out.north);
+\draw[arrow, dashed] (txt_in.south) -- (0, -2.85) -- node[below, font=\scriptsize] {Residual $X_T$} (9.5, -2.85) -- (txt_out.south);
 \end{tikzpicture}%
 }
 \caption{Architecture of the Bidirectional Cross-Attention module. The mechanism explicitly models both Text-to-Vision (T2V) and Vision-to-Text (V2T) interactions, acting as a semantic filter to generate the highly discriminative cross-modal representation $M$.}
@@ -526,46 +520,43 @@ The complete forward pass of the AAG module is summarized in Algorithm \ref{alg:
     \State $P \gets P \cup \{(x_k, y_k)\}$
 \EndFor
 \State $z \gets \text{GAP}(M)$ \Comment{Global Average Pooling for box regression}
-\State $B \gets \sigma(\text{MLP}(z))$ \Comment{Regress normalized bounding box coordinates}
+\State $B \gets \text{CenterSizeToBox}(\sigma(\text{MLP}(\text{LN}(z))))$ \Comment{Regress valid box coordinates in $[0,1]^4$}
 \State \Return $P, B$
 \end{algorithmic}
 \end{algorithm}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \fitwidth{%
 \begin{tikzpicture}[
-    node distance=0.8cm and 1.2cm,
-    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.2cm, minimum height=1cm, fill=blue!5, drop shadow, font=\small},
-    io/.style={draw, trapezium, trapezium left angle=70, trapezium right angle=110, align=center, fill=green!5, drop shadow, font=\small},
+    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.45cm, minimum height=1.05cm, fill=blue!5, drop shadow, font=\small},
+    io/.style={draw, trapezium, trapezium left angle=72, trapezium right angle=108, align=center, minimum width=2.3cm, minimum height=0.95cm, inner xsep=5pt, inner ysep=4pt, fill=green!5, drop shadow, font=\small},
     arrow/.style={-Stealth, thick}
 ]
-
 % Input
-\node[io] (input) {Fused Features\\$M \in \mathbb{R}^{C \times H \times W}$};
+\node[io] (input) at (0, 0) {Fused Features\\$M \in \mathbb{R}^{C \times H \times W}$};
 
 % Point Branch (Top)
-\node[box, right=of input, yshift=1.5cm] (conv) {Conv Block\\$f_{\text{conv}}$};
-\node[box, right=of conv] (softmax) {Spatial Softmax\\(Dynamic $\tau$)};
-\node[box, right=of softmax] (expectation) {Coordinate\\Expectation};
-\node[io, right=of expectation, fill=orange!10] (points) {Point Prompts\\$P$};
+\node[box] (conv) at (4.1, 1.35) {Conv + $c\tanh$\\$f_{\text{conv}}$};
+\node[box] (softmax) at (7.5, 1.35) {Spatial Softmax\\(Dynamic $\tau$)};
+\node[box] (expectation) at (10.9, 1.35) {Coordinate\\Expectation};
+\node[io, fill=orange!10] (points) at (14.4, 1.35) {Point Prompts\\$P$};
 
-% Box Branch (Bottom)
-\node[box, right=of input, yshift=-1.5cm] (gap) {Global Average\\Pooling (GAP)};
-\node[box, right=of gap] (mlp) {MLP +\\Sigmoid};
-\node[io, right=of mlp, fill=orange!10, xshift=2.7cm] (box) {Bounding Box\\$B$};
+% Box Branch (Bottom, aligned vertically with Point Prompts)
+\node[box] (gap) at (4.1, -1.35) {Global Average\\Pooling (GAP)};
+\node[box] (mlp) at (7.5, -1.35) {LayerNorm +\\Box MLP ($\sigma$)};
+\node[io, fill=orange!10] (box) at (14.4, -1.35) {Bounding Box\\$B$};
 
 % Connections
-\draw[arrow] (input.east) -- ++(0.4,0) |- (conv.west);
-\draw[arrow] (input.east) -- ++(0.4,0) |- (gap.west);
+\draw[arrow] (input.east) -- (2.15, 0) |- (conv.west);
+\draw[arrow] (input.east) -- (2.15, 0) |- (gap.west);
 
-\draw[arrow] (conv.east) -- node[above, font=\footnotesize] {$S$} (softmax.west);
-\draw[arrow] (softmax.east) -- node[above, font=\footnotesize] {$p_k$} (expectation.west);
+\draw[arrow] (conv.east) -- node[above=2pt, font=\footnotesize] {$S$} (softmax.west);
+\draw[arrow] (softmax.east) -- node[above=2pt, font=\footnotesize] {$p_k$} (expectation.west);
 \draw[arrow] (expectation.east) -- (points.west);
 
-\draw[arrow] (gap.east) -- node[above, font=\footnotesize] {$z$} (mlp.west);
-\draw[arrow] (mlp.east) -- (box.west);
-
+\draw[arrow] (gap.east) -- node[above=2pt, font=\footnotesize] {$z$} (mlp.west);
+\draw[arrow] (mlp.east) -- node[above=2pt, font=\footnotesize] {$(\hat{c}_x, \hat{c}_y, \hat{w}, \hat{h})$} (box.west);
 \end{tikzpicture}%
 }
 \caption{Internal architecture of the Autonomous Anchor Generation (AAG) module. The module processes the fused cross-modal features through two parallel, fully differentiable branches to regress local point prompts and a global bounding box.}
@@ -622,9 +613,9 @@ This streamlined inference pipeline, detailed in Algorithm \ref{alg:cma_sam_infe
 \State $M \gets \mathcal{F}(F_I, F_T)$ \Comment{Compute cross-modal representation via bidirectional attention}
 
 \State \textbf{Step 3: Autonomous Anchor Generation}
-\State $S \gets \text{ConvHead}(M)$ \Comment{Generate $K$ point activation maps}
+\State $S \gets c \tanh(f_{\text{conv}}(M))$ \Comment{Bounded $K$ point activation maps}
 \State $P \gets \text{SpatialSoftmax}(S, \tau)$ \Comment{Regress discrete point coordinates $P = \{(x_i, y_i)\}_{i=1}^K$}
-\State $B \gets \sigma(\text{MLP}(\text{GAP}(M)))$ \Comment{Regress global bounding box $B$}
+\State $B \gets \text{CenterSizeToBox}(\sigma(\text{MLP}(\text{LN}(\text{GAP}(M)))))$ \Comment{Regress global bounding box $B$}
 
 \State \textbf{Step 4: Mask Decoding}
 \State $E_{\text{sparse}} \gets \mathcal{P}(P, B)$ \Comment{Encode discrete anchors into sparse embeddings}
@@ -687,16 +678,15 @@ The hard \(\arg\max\) function can be formulated as the limit of the Spatial Sof
 Conversely, for any finite \(\tau > 0\) and bounded activation \(S_{m,n} \in \mathbb{R}\), the exponential function ensures that \(p_{m,n} > 0\) strictly. From Equation \ref{eq:grad_x_S}, the gradient \(\frac{\partial x}{\partial S_{m,n}} = 0\) if and only if \(m = x\). Since \(x\) is a continuous expectation over the discrete grid \(\{1, \dots, W\}\), the condition \(m = x\) can hold for at most one grid index \(m\). For all other \(W-1\) indices along the x-axis, \(m - x \neq 0\), ensuring that \(\nabla_S x \neq \mathbf{0}\). Thus, gradients flow continuously to the preceding layers.
 \end{proof}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \fitwidth{%
 \begin{tikzpicture}[
-    node distance=1.5cm and 1.5cm,
-    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.5cm, minimum height=1cm, fill=blue!5, drop shadow, font=\small},
-    grad/.style={-Stealth, thick, dashed, red},
-    forward/.style={-Stealth, thick, gray}
+    node distance=1.65cm,
+    box/.style={draw, rectangle, rounded corners, align=center, minimum width=2.5cm, minimum height=1.05cm, fill=blue!5, drop shadow, font=\small},
+    grad/.style={-Stealth, thick, dashed, red!85!black},
+    forward/.style={-Stealth, thick, black!65}
 ]
-
 % Nodes
 \node[box, fill=red!10] (loss) {Loss Function\\$\mathcal{L}_{\text{total}}$};
 \node[box, right=of loss] (decoder) {SAM Mask\\Decoder};
@@ -704,21 +694,20 @@ Conversely, for any finite \(\tau > 0\) and bounded activation \(S_{m,n} \in \ma
 \node[box, right=of expectation] (softmax) {Spatial\\Softmax};
 \node[box, right=of softmax] (fusion) {Cross-Modal\\Fusion};
 
-% Forward paths (background)
-\draw[forward] (fusion.north) to[bend left=20] node[above, font=\footnotesize, text=black] {$S$} (softmax.north);
-\draw[forward] (softmax.north) to[bend left=20] node[above, font=\footnotesize, text=black] {$p_{i,j}$} (expectation.north);
-\draw[forward] (expectation.north) to[bend left=20] node[above, font=\footnotesize, text=black] {$(x,y)$} (decoder.north);
-\draw[forward] (decoder.north) to[bend left=20] node[above, font=\footnotesize, text=black] {$\hat{Y}$} (loss.north);
+% Forward paths (arching cleanly ABOVE boxes from right to left via explicit polar angles)
+\draw[forward] (fusion.north) to[out=148, in=32] node[above=2pt, font=\footnotesize, text=black] {$S$} (softmax.north);
+\draw[forward] (softmax.north) to[out=148, in=32] node[above=2pt, font=\footnotesize, text=black] {$p_{i,j}$} (expectation.north);
+\draw[forward] (expectation.north) to[out=148, in=32] node[above=2pt, font=\footnotesize, text=black] {$(x,y)$} (decoder.north);
+\draw[forward] (decoder.north) to[out=148, in=32] node[above=2pt, font=\footnotesize, text=black] {$\hat{Y}$} (loss.north);
 
-% Backward paths (foreground)
-\draw[grad] (loss) -- node[below, font=\footnotesize, text=black] {$\frac{\partial \mathcal{L}}{\partial \hat{Y}}$} (decoder);
-\draw[grad] (decoder) -- node[below, font=\footnotesize, text=black] {$\frac{\partial \mathcal{L}}{\partial x}$} (expectation);
-\draw[grad] (expectation) -- node[below, font=\footnotesize, text=black] {$\frac{\partial x}{\partial p_{i,j}}$} (softmax);
-\draw[grad] (softmax) -- node[below, font=\footnotesize, text=black] {$\frac{\partial p_{i,j}}{\partial S_{m,n}}$} (fusion);
-
+% Backward paths (gradient flow from left to right with generous clearance below dashed arrow)
+\draw[grad] (loss.east) -- node[below=4pt, font=\footnotesize, text=black] {$\dfrac{\partial \mathcal{L}}{\partial \hat{Y}}$} (decoder.west);
+\draw[grad] (decoder.east) -- node[below=4pt, font=\footnotesize, text=black] {$\dfrac{\partial \mathcal{L}}{\partial x}$} (expectation.west);
+\draw[grad] (expectation.east) -- node[below=4pt, font=\footnotesize, text=black] {$\dfrac{\partial x}{\partial p_{i,j}}$} (softmax.west);
+\draw[grad] (softmax.east) -- node[below=4pt, font=\footnotesize, text=black] {$\dfrac{\partial p_{i,j}}{\partial S_{m,n}}$} (fusion.west);
 \end{tikzpicture}%
 }
-\caption{Conceptual diagram of the continuous gradient flow during backpropagation. The differentiable expectation mechanism ensures that error signals from the SAM mask decoder \cite{kirillov2023segment} successfully traverse the AAG module to update the cross-modal fusion representations.}
+\caption{Conceptual diagram of the continuous gradient flow during backpropagation. Forward activations arch from right to left (top), while differentiable expectation gradients propagate continuously from left to right (bottom) through the SAM mask decoder \cite{kirillov2023segment} and AAG module into the cross-modal fusion layers.}
 \label{fig:gradient_flow}
 \end{figure}
 
@@ -814,39 +803,36 @@ Let $\Omega \subset \mathcal{X}$ denote the topological interior of the target l
 By definition, the distance from $\mu_k$ to any point outside $\Omega$ is at least $d(\mu_k, \partial \Omega)$. From Theorem \ref{thm:ale_bound}, the maximum displacement of the anchor due to noise $\delta$ is bounded by $R_{\max} = \frac{\delta}{\tau} \sup_t \sqrt{\mathrm{Tr}(\Sigma_{k, t})}$. Since $R_{\max} < d(\mu_k, \partial \Omega)$, the closed ball $\bar{B}(\mu_k, R_{\max})$ is entirely contained within $\Omega$. Therefore, $\tilde{\mu}_k \in \bar{B}(\mu_k, R_{\max}) \subset \Omega$.
 \end{proof}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \fitwidth{%
 \begin{tikzpicture}[
-    scale=1.2,
-    lesion/.style={draw=blue!80, fill=blue!10, thick, smooth cycle, tension=0.7},
-    point/.style={circle, inner sep=1.5pt, fill=#1},
+    lesion/.style={draw=blue!80!black, fill=blue!8, very thick, smooth cycle, tension=0.72},
+    point/.style={circle, inner sep=2.0pt, fill=#1, draw=black, thin},
     arrow/.style={-Stealth, thick}
 ]
+% Smooth Lesion Region \Omega (4.85 cm wide x 3.8 cm tall so interior labels never collide)
+\draw[lesion] plot coordinates {(0.2, 0.25) (1.25, 1.65) (3.25, 1.85) (4.70, 0.85) (4.85, -0.85) (3.30, -1.95) (1.10, -1.75) (0.0, -0.80)};
+\node[font=\small\bfseries, text=blue!80!black] at (2.15, 1.35) {Lesion $\Omega$};
 
-% Draw Lesion \Omega
-\draw[lesion] plot coordinates {(0,0) (1.5,0.5) (2.5, -0.5) (1.5, -1.5) (0.2, -1.0)};
-\node[text=blue!80] at (1.8, 0.2) {Lesion $\Omega$};
+% Error Bound Ball \bar{B}(\mu_k, R_max) strictly inside \Omega
+\draw[dashed, draw=green!55!black, very thick, fill=green!12, fill opacity=0.45] (2.45, -0.25) circle (1.10cm);
 
-% True Anchor \mu_k
-\node[point=black, label={[font=\footnotesize]left:$\mu_k$}] (mu) at (1.0, -0.5) {};
+% True Anchor \mu_k and Radius R_max
+\node[point=black, label={[font=\footnotesize]above left=1pt:$\mu_k$}] (mu) at (2.45, -0.25) {};
+\draw[arrow, green!55!black] (mu) -- (1.35, -0.25) node[midway, below=2pt, font=\footnotesize, text=green!50!black] {$R_{\max}$};
 
-% Error Bound Circle
-\draw[dashed, draw=green!70!black, thick] (mu) circle (0.6cm);
-\draw[arrow, green!70!black] (mu) -- ++(0.42, 0.42) node[midway, above left, font=\scriptsize] {$R_{\max}$};
+% Perturbed Anchor \tilde{\mu}_k inside green ball + clean external callout
+\node[point=green!60!black, label={[font=\footnotesize, text=green!45!black]right=2pt:$\tilde{\mu}_k$}] (mu_tilde) at (2.98, -0.62) {};
+\node[align=left, font=\footnotesize, text=green!45!black] (cma_lbl) at (6.85, -0.95) {\textbf{CMA-SAM Bounded Anchor}\\$\tilde{\mu}_k \in \bar{B}(\mu_k, R_{\max}) \subset \Omega$};
+\draw[-Stealth, thin, green!55!black] (cma_lbl.west) -- (3.58, -0.52);
 
-% Perturbed Anchor \tilde{\mu}_k (CMA-SAM)
-\node[point=green!70!black, label={[font=\footnotesize, text=green!70!black]below:$\tilde{\mu}_k$ (CMA-SAM)}] (mu_tilde) at (1.3, -0.3) {};
-
-% Cascaded Model Failure Point
-\node[point=red, label={[font=\footnotesize, text=red]right:Cascaded Failure \cite{aleem2024test}}] (cascade) at (3.5, 0.8) {};
-
-% Noise spike illustration
-\draw[->, red, dashed, thick] (1.0, -0.5) to[bend left] node[midway, above, font=\scriptsize, text=red] {Unbounded Error} (cascade);
-
+% Cascaded Model Unbounded Failure Point outside \Omega
+\node[point=red!85!black, label={[font=\footnotesize, text=red!80!black]right=4pt:\textbf{Cascaded Failure} \cite{aleem2024test}}] (cascade) at (6.15, 1.35) {};
+\draw[-Stealth, red!85!black, dashed, very thick] (mu) to[out=36, in=175] node[pos=0.62, above=3pt, sloped, font=\scriptsize\bfseries, text=red!80!black] {Unbounded Error} (cascade);
 \end{tikzpicture}%
 }
-\caption{Geometric illustration of Corollary \ref{cor:containment}. While modality-gap noise causes sequential cascaded models \cite{aleem2024test} to suffer unbounded spatial hallucinations (red), the expectation-based regression in CMA-SAM strictly bounds the displacement to $R_{\max}$ (green), ensuring the generated anchor remains topologically contained within the target lesion $\Omega$.}
+\caption{Geometric illustration of Corollary \ref{cor:containment}. While modality-gap noise causes sequential cascaded models \cite{aleem2024test} to suffer unbounded spatial hallucinations outside $\Omega$ (red), expectation-based regression in CMA-SAM strictly bounds displacement within $R_{\max}$ (green), guaranteeing topological containment inside the target lesion $\Omega$.}
 \label{fig:topological_containment}
 \end{figure}
 
@@ -985,9 +971,12 @@ In contrast, CMA-SAM achieves $\mathcal{O}(1)$ scaling with respect to prompt co
 \begin{tikzpicture}
 \begin{axis}[
     width=0.78\textwidth,
-    height=5.6cm,
+    height=6.0cm,
     xlabel={Input Image Resolution ($H = W$, pixels)},
-    ylabel={Fusion + AAG Translation Latency (ms)},
+    ylabel={Translation Latency (ms)},
+    label style={font=\small},
+    tick label style={font=\footnotesize},
+    title style={font=\small\bfseries},
     xmin=200, xmax=1080,
     ymin=0, ymax=5.0,
     xtick={256, 512, 1024},
@@ -1034,7 +1023,7 @@ HAM10000 \cite{tschandl2018ham10000} & Dermatology (Cross-Cohort Eval) & 8012 & 
 \end{tabular}
 \end{table}
 
-CMA-SAM is implemented in PyTorch using \texttt{facebook/sam-vit-base} \cite{kirillov2023segment} as the visual backbone and frozen \texttt{openai/clip-vit-base-patch32} \cite{radford2021learning} as the text encoder, and trained on a Linux server equipped with two NVIDIA A800 (80~GB PCIe) GPUs via DistributedDataParallel. Low-Rank Adaptation (LoRA) \cite{zhang2023customized} with rank $r = 16$ ($\alpha = 16$) is injected exclusively into the query and value projections of all 12 SAM ViT-B transformer blocks, while the CLIP text encoder, SAM prompt encoder, and SAM mask decoder remain strictly frozen. Unless ablated otherwise, the bidirectional cross-attention module uses $2$ layers ($8$ heads, hidden dimension $256$) and AAG uses $K = 5$ points, bounding box regression enabled, logit cap $c = 3.0$, and learnable temperature initialized at $\tau_0 = 0.1$. Models are trained for $50$ epochs ($5$-epoch linear warmup followed by cosine annealing to $10^{-6}$) using AdamW \cite{loshchilov2017decoupled} with base learning rate $1 \times 10^{-4}$, weight decay $1 \times 10^{-2}$ (zero weight decay on biases, normalization layers, and $w_\tau$, with $5\times$ learning rate on $w_\tau$), FP16 automatic mixed precision, per-GPU micro-batch size $2$, and $8$ gradient accumulation steps (effective global batch size $32$).
+CMA-SAM is implemented in PyTorch using \texttt{facebook/sam-vit-base} \cite{kirillov2023segment} as the visual backbone and frozen \texttt{openai/\allowbreak clip-vit-\allowbreak base-\allowbreak patch32} \cite{radford2021learning} as the text encoder, and trained on a Linux server equipped with two NVIDIA A800 (80~GB PCIe) GPUs via DistributedDataParallel. Low-Rank Adaptation (LoRA) \cite{zhang2023customized} with rank $r = 16$ ($\alpha = 16$) is injected exclusively into the query and value projections of all 12 SAM ViT-B transformer blocks, while the CLIP text encoder, SAM prompt encoder, and SAM mask decoder remain strictly frozen. Unless ablated otherwise, the bidirectional cross-attention module uses $2$ layers ($8$ heads, hidden dimension $256$) and AAG uses $K = 5$ points, bounding box regression enabled, logit cap $c = 3.0$, and learnable temperature initialized at $\tau_0 = 0.1$. Models are trained for $50$ epochs ($5$-epoch linear warmup followed by cosine annealing to $10^{-6}$) using AdamW \cite{loshchilov2017decoupled} with base learning rate $1 \times 10^{-4}$, weight decay $1 \times 10^{-2}$ (zero weight decay on biases, normalization layers, and $w_\tau$, with $5\times$ learning rate on $w_\tau$), FP16 automatic mixed precision, per-GPU micro-batch size $2$, and $8$ gradient accumulation steps (effective global batch size $32$).
 
 To isolate the architectural effect of discrete cross-modal anchor generation without confounding backbone differences, we evaluate CMA-SAM against controlled counterparts sharing the exact same LoRA-adapted SAM ViT-B and CLIP ViT-B/32 backbones: (1) a \textbf{Dense Prompt Decoding Baseline} following the continuous dense-projection paradigm of Simple-ViLMedSAM \cite{qian2024simplevilmedsam}, which replaces AAG with a convolutional dense-mask prompt head feeding continuous $256 \times 64 \times 64$ embeddings directly into SAM's mask decoder; and (2) a \textbf{Visual Saliency Self-Prompting Baseline} following monolithic heuristic self-prompting \cite{xie2025self, chen2024un}, which extracts top-$K$ foreground peaks and a $75\text{th}$-percentile bounding box from the $\ell_2$ saliency norm of SAM visual features without cross-modal text conditioning. Segmentation quality is measured via Dice Similarity Coefficient (DSC, \%) \cite{milletari2016vnet} and Intersection over Union (IoU, \%). Intermediate spatial grounding is quantified via Point Anchor Localization Error (\textbf{ALE}, measured in $64 \times 64$ bottleneck feature-grid pixels, where $1$ grid unit equals $16$ image pixels at $1024 \times 1024$, between the mean predicted point anchor and the ground-truth foreground centroid) and Box ALE ($1 - \text{IoU}_{\text{box}}$).
 
@@ -1065,9 +1054,12 @@ Simple-ViLMedSAM Dense Baseline \cite{qian2024simplevilmedsam} & \textbf{37.49} 
 \begin{tikzpicture}
 \begin{axis}[
     width=0.78\textwidth,
-    height=5.8cm,
+    height=6.2cm,
     xlabel={$N$-Shot Target-Domain Training Samples (Kvasir-SEG, 3-Seed Mean)},
     ylabel={Test Dice Similarity Coefficient (DSC \%)},
+    label style={font=\small},
+    tick label style={font=\footnotesize},
+    legend style={font=\footnotesize},
     xmin=0.5, xmax=10.5,
     ymin=0, ymax=72,
     xtick={1, 5, 10},
@@ -1168,14 +1160,16 @@ Examining the interaction between $K$ and $B$ reveals an instructive geometric m
 \begin{tikzpicture}
 \begin{axis}[
     width=0.78\textwidth,
-    height=5.6cm,
+    height=6.0cm,
     xlabel={Number of Generated Point Prompts ($K$)},
     ylabel={Test Dice Similarity Coefficient (DSC \%)},
+    label style={font=\small},
+    tick label style={font=\footnotesize},
     xmin=0.5, xmax=10.5,
-    ymin=85.0, ymax=90.0,
+    ymin=85.5, ymax=90.0,
     xtick={1, 3, 5, 10},
-    ytick={85, 86, 87, 88, 89, 90},
-    legend pos=south east,
+    ytick={86, 87, 88, 89, 90},
+    legend style={at={(0.5,-0.22)}, anchor=north, legend columns=3, font=\footnotesize, /tikz/every even column/.append style={column sep=8pt}},
     ymajorgrids=true,
     grid style=dashed,
     mark size=3pt
@@ -1275,16 +1269,17 @@ Figure \ref{fig:activation_profiles} plots the measured 1D normalized $\ell_2$ f
 \centering
 \begin{tikzpicture}
 \begin{axis}[
-    width=0.84\textwidth,
-    height=5.8cm,
+    width=0.82\textwidth,
+    height=6.0cm,
     xlabel={Normalized Horizontal Scanline Position Across Endoscopy Frame (\%)},
     ylabel={Min-Max Normalized $\|M_{:, y^*, x}\|_2$},
-    ymin=-0.05, ymax=1.12,
+    label style={font=\small},
+    tick label style={font=\footnotesize},
+    title style={font=\small\bfseries},
+    ymin=-0.06, ymax=1.10,
     xmin=0, xmax=100,
     grid=major,
-    legend pos=north east,
-    legend style={font=\footnotesize},
-    legend cell align={left},
+    legend style={at={(0.5,-0.22)}, anchor=north, legend columns=2, font=\footnotesize, cells={anchor=west}, /tikz/every even column/.append style={column sep=10pt}},
     title={Measured 1D Cross-Sectional Feature-Norm Profiles Across Polyp Centroid}
 ]
 \addplot[color=blue!80!black, mark=o, thick] coordinates {
@@ -1337,15 +1332,18 @@ Figure \ref{fig:ale_comparison} compares multi-dataset Point Anchor Localization
     ybar,
     bar width=18pt,
     width=0.80\linewidth,
-    height=5.8cm,
+    height=6.2cm,
     enlarge x limits=0.25,
-    ylabel={Point Anchor Localization Error (Grid Pixels)},
+    ylabel={Point ALE (Grid Pixels)},
+    label style={font=\small},
+    tick label style={font=\footnotesize},
     symbolic x coords={Kvasir-SEG, ISIC 2018, HAM10000},
     xtick=data,
     nodes near coords,
     nodes near coords align={vertical},
-    ymin=0, ymax=38,
-    legend style={at={(0.5,-0.18)},anchor=north,legend columns=-1, font=\footnotesize},
+    nodes near coords style={font=\footnotesize, /pgf/number format/.cd, fixed, fixed zerofill, precision=2},
+    ymin=0, ymax=39,
+    legend style={at={(0.5,-0.16)}, anchor=north, legend columns=-1, font=\footnotesize, /tikz/every even column/.append style={column sep=8pt}},
     ymajorgrids=true,
     grid style=dashed
 ]
