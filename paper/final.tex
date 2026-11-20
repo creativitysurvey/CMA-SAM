@@ -97,7 +97,7 @@
 \maketitle
 
 \begin{abstract}
-Medical image segmentation is a critical component of clinical diagnosis and surgical planning, yet it is often bottlenecked by the scarcity of high-quality annotations and the exorbitant costs of manual labeling. While Vision Foundation Models, particularly the Segment Anything Model (SAM), have demonstrated remarkable zero-shot capabilities, their application in medical imaging traditionally relies on explicit, manually crafted geometric prompts (e.g., points or bounding boxes). Recent vision-language adaptations attempt to replace manual prompts with text queries; however, they typically bypass SAM's highly optimized geometric prompt encoder by forcing the mask decoder to resolve spatial boundaries directly from continuous, dense cross-modal embeddings. This often leads to suboptimal boundary delineation and spatial hallucinations in complex anatomical structures. To address this limitation, we propose the Cross-Modal Anchor Segment Anything Model (CMA-SAM), a novel framework that seamlessly bridges continuous semantic text embeddings with discrete geometric prompts. CMA-SAM leverages implicit cross-modal specification and joint feature fusion to autonomously regress optimal geometric anchors. Specifically, visual features and simple text queries are fused via bidirectional cross-attention, and a novel Autonomous Anchor Generation (AAG) module employs a differentiable spatial softmax operation to predict precise point coordinates and bounding boxes. By feeding these autonomously generated discrete anchors directly into SAM's native prompt encoder, CMA-SAM explicitly decouples semantic localization from high-frequency boundary delineation. This approach eliminates the need for manual prompt engineering while fully exploiting SAM's pre-trained coordinate-based decoding strengths. Extensive experiments on endoscopic (Kvasir-SEG) and dermoscopic (ISIC 2018) benchmarks demonstrate that CMA-SAM reduces Anchor Localization Error by 88.2\%--94.0\% over visual saliency self-prompting (down to 3.92 and 1.30 grid pixels), improves cross-domain few-shot segmentation by up to 34.56 percentage points in 1-shot adaptation, compresses over $10^6$ continuous dense feature activations into at most 24 interpretable spatial coordinates while retaining over 99.3\% of dense-decoding in-domain accuracy, and exhibits $11.4\times$ higher stability across simple versus complex clinical text prompts at 4.54M trainable parameters.
+Medical image segmentation is a critical component of clinical diagnosis and surgical planning, yet it is often bottlenecked by the scarcity of high-quality annotations and the exorbitant costs of manual labeling. While Vision Foundation Models, particularly the Segment Anything Model (SAM), have demonstrated remarkable zero-shot capabilities, their application in medical imaging traditionally relies on explicit, manually crafted geometric prompts (e.g., points or bounding boxes). Recent vision-language adaptations attempt to replace manual prompts with text queries; however, they typically bypass SAM's highly optimized geometric prompt encoder by forcing the mask decoder to resolve spatial boundaries directly from continuous, dense cross-modal embeddings. This often leads to suboptimal boundary delineation and spatial hallucinations in complex anatomical structures. To address this limitation, we propose the Cross-Modal Anchor Segment Anything Model (CMA-SAM), a novel framework that seamlessly bridges continuous semantic text embeddings with discrete geometric prompts. CMA-SAM leverages implicit cross-modal specification and joint feature fusion to autonomously regress optimal geometric anchors. Specifically, visual features and simple text queries are fused via bidirectional cross-attention, and a novel Autonomous Anchor Generation (AAG) module employs a differentiable spatial softmax operation to predict precise point coordinates and bounding boxes. By feeding these autonomously generated discrete anchors directly into SAM's native prompt encoder, CMA-SAM explicitly decouples semantic localization from high-frequency boundary delineation. This approach eliminates the need for manual prompt engineering while fully exploiting SAM's pre-trained coordinate-based decoding strengths. Extensive experiments on endoscopic (Kvasir-SEG) and dermoscopic (ISIC 2018 and external cross-cohort HAM10000) benchmarks demonstrate that CMA-SAM reduces Anchor Localization Error by 88.2\%--94.0\% over visual saliency self-prompting (down to 3.92, 1.30, and 2.39 grid pixels), improves cross-domain few-shot segmentation by up to 34.56 percentage points in 1-shot adaptation, compresses over $10^6$ continuous dense feature activations into at most 24 interpretable spatial coordinates while retaining over 99.3\% of dense-decoding in-domain accuracy, and exhibits $11.4\times$ higher stability across simple versus complex clinical text prompts at 4.54M trainable parameters.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -135,7 +135,7 @@ In summary, the key contributions of our work are threefold:
 \begin{itemize}
     \item We introduce a novel semantic-to-spatial translation paradigm that eliminates the bottleneck of manual prompt engineering while fully preserving the highly optimized, discrete geometric decoding efficiency native to SAM \cite{kirillov2023segment}.
     \item We propose the AAG module, which effectively mitigates the spatial hallucinations and boundary blurring inherent in direct dense decoding architectures by forcing the model to commit to explicit, interpretable spatial coordinates before final mask generation.
-    \item We establish theoretical gradient-flow, localization-error, and information-bottleneck bounds for expectation-based anchor generation, and empirically validate CMA-SAM on gastrointestinal endoscopy (Kvasir-SEG \cite{jha2020kvasir}) and dermoscopy (ISIC 2018 \cite{codella2018skin}), demonstrating substantial gains in cross-domain few-shot efficiency, anchor localization precision, and robustness to text prompt complexity.
+    \item We establish theoretical gradient-flow, localization-error, and information-bottleneck bounds for expectation-based anchor generation, and empirically validate CMA-SAM across gastrointestinal endoscopy (Kvasir-SEG \cite{jha2020kvasir}) and dermoscopy (ISIC 2018 \cite{codella2018skin} and external cross-cohort HAM10000 \cite{tschandl2018ham10000}), demonstrating substantial gains in cross-domain few-shot efficiency, anchor localization precision, and robustness to text prompt complexity.
 \end{itemize}
 
 \subsection{Paper Organization}
@@ -281,7 +281,7 @@ Unlike sequential cascaded approaches \cite{aleem2024test, li2024clipsam} that d
 \draw[arrow] (aag.east) -- ++(0.4,0) |- node[above left, font=\footnotesize] {$\{P, B\}$} (prompt_enc.west);
 
 \draw[arrow] (prompt_enc.south) -- node[right, font=\footnotesize] {Sparse Embeddings} (mask_dec.north);
-\draw[arrow] (img_enc.north) -- ++(0,0.6) -| node[above pos=0.25, font=\footnotesize] {Dense Image Embeddings $F_I$} (mask_dec.north);
+\draw[arrow] (img_enc.north) -- ++(0,0.6) -| node[above, pos=0.25, font=\footnotesize] {Dense Image Embeddings $F_I$} (mask_dec.north);
 
 \draw[arrow] (mask_dec.east) -- (out.west);
 
@@ -1001,14 +1001,14 @@ In contrast, CMA-SAM achieves $\mathcal{O}(1)$ scaling with respect to prompt co
     mark=*,
     very thick
 ] coordinates {
-    (256, 2.400)
-    (512, 2.377)
-    (1024, 2.383)
+    (256, 2.333)
+    (512, 2.318)
+    (1024, 2.331)
 };
 \addlegendentry{\textbf{CMA-SAM Fusion + AAG (Measured, ms)}}
 \end{axis}
 \end{tikzpicture}
-\caption{Measured GPU latency of the CMA-SAM cross-modal fusion and Autonomous Anchor Generation (AAG) translation stage across input resolutions $H \times W \in \{256^2, 512^2, 1024^2\}$ ($H_f = H/16 \in \{16, 32, 64\}$) on an NVIDIA A800 GPU. Because all spatial operations occur on the $16\times$-downsampled bottleneck feature grid, execution remains kernel-launch-bound at $2.38$--$2.40$~ms ($<2.6\%$ of total end-to-end frame latency) even at $1024 \times 1024$ resolution.}
+\caption{Measured GPU latency of the CMA-SAM cross-modal fusion and Autonomous Anchor Generation (AAG) translation stage across input resolutions $H \times W \in \{256^2, 512^2, 1024^2\}$ ($H_f = H/16 \in \{16, 32, 64\}$) on an NVIDIA A800 GPU. Because all spatial operations occur on the $16\times$-downsampled bottleneck feature grid, execution remains kernel-launch-bound at $2.32$--$2.33$~ms ($<2.5\%$ of total end-to-end frame latency) even at $1024 \times 1024$ resolution.}
 \label{fig:complexity_plot}
 \end{figure}
 
@@ -1017,7 +1017,7 @@ Figure \ref{fig:complexity_plot} visually corroborates this theoretical advantag
 
 \subsection{Experimental Settings}
 
-To evaluate CMA-SAM across distinct clinical imaging modalities with contrasting boundary characteristics, we conduct experiments on two public benchmarks: Kvasir-SEG \cite{jha2020kvasir} for gastrointestinal endoscopy ($1{,}000$ polyp image-mask pairs characterized by specular mucosal reflections and diffuse borders) and the ISIC 2018 Task 1 lesion boundary segmentation dataset \cite{codella2018skin} for dermoscopy ($2{,}594$ pigmented skin lesion pairs exhibiting variable contrast, hair occlusion, and irregular margins). Both datasets are partitioned deterministically using a fixed random seed ($42$) into $80\% / 10\% / 10\%$ training, validation, and test splits, as summarized in Table \ref{tab:dataset_splits}. All images and ground-truth masks are resized to $1024 \times 1024$ pixels to match the native input resolution of SAM \cite{kirillov2023segment} and normalized with standard SAM pixel statistics. Standardized class prompts (\texttt{"polyp"} for Kvasir-SEG and \texttt{"skin lesion"} for ISIC 2018) are used for primary training and zero-shot/few-shot evaluation, while unseen multi-attribute clinical descriptions (e.g., \textit{``an endoscopic gastrointestinal image showing a protruding mucosal polypoid lesion with irregular vascular surface margins''}) following clinical VLM prompting protocols \cite{sellergren2025medgemma} are used at test time to evaluate semantic-to-spatial stability.
+To evaluate CMA-SAM across distinct clinical imaging modalities with contrasting boundary characteristics, we conduct experiments across three public benchmarks: Kvasir-SEG \cite{jha2020kvasir} for gastrointestinal endoscopy ($1{,}000$ polyp image-mask pairs characterized by specular mucosal reflections and diffuse borders), the ISIC 2018 Task 1 lesion boundary segmentation dataset \cite{codella2018skin} for dermoscopy ($2{,}594$ pigmented skin lesion pairs exhibiting variable contrast, hair occlusion, and irregular margins), and the large-scale HAM10000 dermoscopy cohort \cite{tschandl2018ham10000} ($10{,}015$ multi-source dermatoscopic image-mask pairs used to test cross-cohort anchor localization generalization without retraining). All datasets are partitioned deterministically using a fixed random seed ($42$) into $80\% / 10\% / 10\%$ training, validation, and test splits, as summarized in Table \ref{tab:dataset_splits}. All images and ground-truth masks are resized to $1024 \times 1024$ pixels to match the native input resolution of SAM \cite{kirillov2023segment} and normalized with standard SAM pixel statistics. Standardized class prompts (\texttt{"polyp"} for Kvasir-SEG, \texttt{"skin lesion"} for ISIC 2018, and \texttt{"pigmented skin lesion"} for HAM10000) are used for primary training and zero-shot/few-shot evaluation, while unseen multi-attribute clinical descriptions (e.g., \textit{``an endoscopic gastrointestinal image showing a protruding mucosal polypoid lesion with irregular vascular surface margins''}) following clinical VLM prompting protocols \cite{sellergren2025medgemma} are used at test time to evaluate semantic-to-spatial stability.
 
 \begin{table}[!htbp]
 \centering
@@ -1029,6 +1029,7 @@ To evaluate CMA-SAM across distinct clinical imaging modalities with contrasting
 \midrule
 Kvasir-SEG \cite{jha2020kvasir} & Endoscopy & 800 & 100 & 100 \\
 ISIC 2018 \cite{codella2018skin} & Dermatology & 2075 & 259 & 260 \\
+HAM10000 \cite{tschandl2018ham10000} & Dermatology (Cross-Cohort Eval) & 8012 & 1002 & 1001 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1124,7 +1125,7 @@ Figure \ref{fig:qualitative_comparison} summarizes the qualitative behavior on h
 
 \node[panel, fill=gray!8] (r2c1) at (0, -3.85) {ISIC 2018\\Dermoscopy\\Query: \texttt{"skin lesion"}};
 \node[panel, fill=red!8] (r2c2) at (3.4, -3.85) {Vignette Drift\\ALE $= 21.52$~px\\(Corner/hair bias)};
-\node[panel, fill=blue!6] (r2c3) at (6.8, -3.85) {No Explicit Prior\\5.20M Params\\$99.58$~ms/frame};
+\node[panel, fill=blue!6] (r2c3) at (6.8, -3.85) {No Explicit Prior\\5.20M Params\\$94.51$~ms/frame};
 \node[panel, fill=green!10, draw=green!55!black, thick] (r2c4) at (10.2, -3.85) {Auto Box + $K$ Pts\\DSC $= 89.94\%$--$90.57\%$\\ALE $= 1.18$--$1.30$~px};
 \end{tikzpicture}%
 }
@@ -1311,7 +1312,7 @@ Figure \ref{fig:activation_profiles} plots the measured 1D normalized $\ell_2$ f
 
 \subsection{Computational Efficiency and Localization Accuracy}
 
-\textbf{CMA-SAM reduces trainable parameters by $12.7\%$, accelerates end-to-end $1024 \times 1024$ inference, and cuts Anchor Localization Error by up to $94.0\%$.} Table \ref{tab:efficiency} reports trainable parameter counts and single-frame $1024 \times 1024$ inference latency measured via CUDA hardware events ($15$ warmup iterations, $50$ timed iterations) on an NVIDIA A800 GPU. By leveraging SAM's frozen sparse prompt encoder rather than a trainable dense-mask projection block, CMA-SAM requires only $4.54\text{M}$ trainable parameters (out of $156.9\text{M}$ total SAM+CLIP parameters, i.e., $2.89\%$) and completes full end-to-end image+text segmentation in $94.67 \pm 0.77$~ms/frame ($10.6$~FPS), compared to $5.20\text{M}$ trainable parameters and $99.58$~ms/frame for the Dense Prompt Baseline.
+\textbf{CMA-SAM reduces trainable parameters by $12.7\%$, accelerates end-to-end $1024 \times 1024$ inference, and cuts Anchor Localization Error by up to $94.0\%$.} Table \ref{tab:efficiency} reports trainable parameter counts and single-frame $1024 \times 1024$ inference latency measured via CUDA hardware events ($15$ warmup iterations, $50$ timed iterations) on an NVIDIA A800 GPU. By leveraging SAM's frozen sparse prompt encoder rather than a trainable dense-mask projection block, CMA-SAM requires only $4.54\text{M}$ trainable parameters (out of $156.9\text{M}$ total SAM+CLIP parameters, i.e., $2.89\%$) and completes full end-to-end image+text segmentation in $94.13 \pm 1.81$~ms/frame ($10.6$~FPS), compared to $5.20\text{M}$ trainable parameters and $94.51$~ms/frame for the Dense Prompt Baseline.
 
 \begin{table}[!htbp]
 \centering
@@ -1321,25 +1322,25 @@ Figure \ref{fig:activation_profiles} plots the measured 1D normalized $\ell_2$ f
 \toprule
 \textbf{Method (SAM ViT-B + CLIP ViT-B/32)} & \textbf{Trainable Params (M)} $\downarrow$ & \textbf{Latency (ms/frame)} $\downarrow$ \\
 \midrule
-Simple-ViLMedSAM Dense Baseline \cite{qian2024simplevilmedsam} & 5.20 & 99.58 \\
-\textbf{CMA-SAM (Ours, Discrete AAG)} & \textbf{4.54} & \textbf{94.67 $\pm$ 0.77} \\
+Simple-ViLMedSAM Dense Baseline \cite{qian2024simplevilmedsam} & 5.20 & 94.51 \\
+\textbf{CMA-SAM (Ours, Discrete AAG)} & \textbf{4.54} & \textbf{94.13 $\pm$ 1.81} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Figure \ref{fig:ale_comparison} compares multi-dataset Point Anchor Localization Error (ALE, in $64 \times 64$ feature-grid pixels) between CMA-SAM and the Visual Saliency Heuristic \cite{xie2025self} across held-out Kvasir-SEG and ISIC 2018 test sets. Because endoscopic specular reflections and dermoscopic border vignettes pull raw visual saliency away from true lesion centers, the Saliency Heuristic incurs $33.16$~px ALE on Kvasir-SEG and $21.52$~px ALE on ISIC 2018 (exceeding half the $64 \times 64$ grid width on endoscopy). CMA-SAM reduces ALE by $88.2\%$ on Kvasir-SEG (to $3.92$~px) and by $94.0\%$ on ISIC 2018 (to $1.30$~px, equivalent to $\approx 20.8$ pixels on a $1024 \times 1024$ dermoscopy frame), empirically confirming Corollary \ref{cor:containment}'s topological containment property.
+Figure \ref{fig:ale_comparison} compares multi-dataset Point Anchor Localization Error (ALE, in $64 \times 64$ feature-grid pixels) between CMA-SAM and the Visual Saliency Heuristic \cite{xie2025self} across the held-out Kvasir-SEG ($100$ images), ISIC 2018 ($260$ images), and external HAM10000 ($1{,}001$ images, evaluated zero-shot without retraining using the ISIC 2018 checkpoint) test cohorts. Because endoscopic specular reflections and dermoscopic border vignettes pull raw visual saliency away from true lesion centers, the Saliency Heuristic incurs $33.16$~px ALE on Kvasir-SEG, $21.52$~px ALE on ISIC 2018, and $20.37$~px ALE on HAM10000. CMA-SAM reduces ALE by $88.2\%$ on Kvasir-SEG (to $3.92$~px), by $94.0\%$ on ISIC 2018 (to $1.30$~px, $\approx 20.8$ pixels at $1024 \times 1024$), and by $88.3\%$ on external HAM10000 (to $2.39$~px), empirically confirming Corollary \ref{cor:containment}'s topological containment property across both in-domain and cross-cohort evaluations.
 
 \begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    bar width=24pt,
-    width=0.72\linewidth,
+    bar width=18pt,
+    width=0.80\linewidth,
     height=5.8cm,
-    enlarge x limits=0.45,
+    enlarge x limits=0.25,
     ylabel={Point Anchor Localization Error (Grid Pixels)},
-    symbolic x coords={Kvasir-SEG, ISIC 2018},
+    symbolic x coords={Kvasir-SEG, ISIC 2018, HAM10000},
     xtick=data,
     nodes near coords,
     nodes near coords align={vertical},
@@ -1348,14 +1349,14 @@ Figure \ref{fig:ale_comparison} compares multi-dataset Point Anchor Localization
     ymajorgrids=true,
     grid style=dashed
 ]
-\addplot[fill=blue!30, draw=blue!80!black, thick] coordinates {(Kvasir-SEG, 33.16) (ISIC 2018, 21.52)};
+\addplot[fill=blue!30, draw=blue!80!black, thick] coordinates {(Kvasir-SEG, 33.16) (ISIC 2018, 21.52) (HAM10000, 20.37)};
 \addlegendentry{Visual Saliency Heuristic \cite{xie2025self}}
 
-\addplot[fill=red!35, draw=red!80!black, thick] coordinates {(Kvasir-SEG, 3.92) (ISIC 2018, 1.30)};
+\addplot[fill=red!35, draw=red!80!black, thick] coordinates {(Kvasir-SEG, 3.92) (ISIC 2018, 1.30) (HAM10000, 2.39)};
 \addlegendentry{\textbf{CMA-SAM (Ours)}}
 \end{axis}
 \end{tikzpicture}
-\caption{Measured Point Anchor Localization Error (ALE, in $64 \times 64$ bottleneck grid pixels; lower is better) on held-out Kvasir-SEG and ISIC 2018 test sets. Cross-modal supervision reduces localization error by $88.2\%$ on endoscopy and $94.0\%$ on dermoscopy.}
+\caption{Measured Point Anchor Localization Error (ALE, in $64 \times 64$ bottleneck grid pixels; lower is better) across held-out Kvasir-SEG, ISIC 2018, and external cross-cohort HAM10000 test sets. Cross-modal anchor generation reduces localization error by $88.2\%$, $94.0\%$, and $88.3\%$, respectively.}
 \label{fig:ale_comparison}
 \end{figure}
 
@@ -1410,7 +1411,7 @@ Second, CMA-SAM inherits the pre-training domain priors of general-domain CLIP \
 
 The deployment of Vision Foundation Models (VFMs) in medical image segmentation has historically been bottlenecked by a reliance on explicit geometric prompts \cite{kirillov2023segment, mazurowski2023segment} or highly complex, expert-crafted clinical text \cite{wang2022medclip}. While recent multi-modal adaptations have attempted to bypass manual prompting by directly decoding dense masks from continuous cross-modal embeddings \cite{qian2024simplevilmedsam, koleilat2025medclip}, these approaches frequently suffer from spatial hallucinations and poor boundary delineation in heterogeneous tissues. To overcome these fundamental limitations, this paper introduced the Cross-Modal Anchor Segment Anything Model (CMA-SAM), a novel framework that explicitly decouples semantic target identification from spatial boundary delineation.
 
-The core contribution of CMA-SAM is the Autonomous Anchor Generation (AAG) module, which bridges the semantic-to-spatial gap by translating implicit, simple text queries into discrete geometric coordinates. By deeply entangling dense visual features from a LoRA-adapted SAM encoder \cite{zhang2023customized} with semantic embeddings from a frozen CLIP text encoder \cite{radford2021learning} via Bidirectional Cross-Attention \cite{wang2024sam}, the framework generates a highly discriminative spatial prior. The AAG module then utilizes a fully differentiable Spatial Softmax operation to regress optimal point prompts and bounding boxes. This discrete grounding allows CMA-SAM to fully exploit SAM's native, highly optimized prompt encoder. Empirical evaluations on Kvasir-SEG and ISIC 2018 demonstrate that CMA-SAM cuts Anchor Localization Error by 88.2\%--94.0\% relative to visual saliency self-prompting \cite{xie2025self, chen2024un}, boosts cross-domain few-shot DSC by up to 34.56 percentage points, retains over 99.3\% of unconstrained dense-decoding in-domain accuracy \cite{qian2024simplevilmedsam} using at most 24 explicit spatial coordinates, and reduces sensitivity to clinical prompt verbosity by $11.4\times$ while operating at 94.67~ms/frame with only 4.54M trainable parameters.
+The core contribution of CMA-SAM is the Autonomous Anchor Generation (AAG) module, which bridges the semantic-to-spatial gap by translating implicit, simple text queries into discrete geometric coordinates. By deeply entangling dense visual features from a LoRA-adapted SAM encoder \cite{zhang2023customized} with semantic embeddings from a frozen CLIP text encoder \cite{radford2021learning} via Bidirectional Cross-Attention \cite{wang2024sam}, the framework generates a highly discriminative spatial prior. The AAG module then utilizes a fully differentiable Spatial Softmax operation to regress optimal point prompts and bounding boxes. This discrete grounding allows CMA-SAM to fully exploit SAM's native, highly optimized prompt encoder. Empirical evaluations across Kvasir-SEG, ISIC 2018, and HAM10000 demonstrate that CMA-SAM cuts Anchor Localization Error by 88.2\%--94.0\% relative to visual saliency self-prompting \cite{xie2025self, chen2024un}, boosts cross-domain few-shot DSC by up to 34.56 percentage points, retains over 99.3\% of unconstrained dense-decoding in-domain accuracy \cite{qian2024simplevilmedsam} using at most 24 explicit spatial coordinates, and reduces sensitivity to clinical prompt verbosity by $11.4\times$ while operating at 94.13~ms/frame with only 4.54M trainable parameters.
 
 Despite these advancements, the morphological complexity of medical targets and the domain gap inherent in general-purpose foundation models present ongoing challenges. To further advance the paradigm of autonomous, text-driven medical image segmentation, we suggest the following specific future research directions:
 

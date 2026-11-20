@@ -6,16 +6,17 @@ CMA-SAM bridges continuous vision-language representations and the discrete coor
 
 ## Empirical Highlights
 
-Evaluated on **Kvasir-SEG** (gastrointestinal endoscopy, `800 / 100 / 100`) and **ISIC 2018 Task 1** (dermoscopy, `2075 / 259 / 260`) on 2x NVIDIA A800 (80 GB PCIe) GPUs:
+Evaluated on **Kvasir-SEG** (gastrointestinal endoscopy, `800 / 100 / 100`), **ISIC 2018 Task 1** (dermoscopy, `2075 / 259 / 260`), and external cross-cohort **HAM10000** (dermoscopy, `8012 / 1002 / 1001`) on 2x NVIDIA A800 (80 GB PCIe) GPUs:
 
 | Evaluation Suite | Metric | Baseline | CMA-SAM (Ours) |
 | :--- | :--- | :---: | :---: |
 | **Anchor Localization Error (Kvasir-SEG)** | Point ALE (64x64 grid px) $\downarrow$ | `33.16` (Visual Saliency) | **`3.92`** (-88.2%) |
 | **Anchor Localization Error (ISIC 2018)** | Point ALE (64x64 grid px) $\downarrow$ | `21.52` (Visual Saliency) | **`1.30`** (-94.0%) |
+| **Anchor Localization Error (HAM10000, Zero-Shot)** | Point ALE (64x64 grid px) $\downarrow$ | `20.37` (Visual Saliency) | **`2.39`** (-88.3%) |
 | **Cross-Domain Few-Shot (1 / 5 / 10-shot)** | Test DSC (%) $\uparrow$ | `9.27 / 27.28 / 48.91` | **`43.83 / 50.80 / 64.18`** |
 | **Prompt Verbosity Stability (Simple vs. Complex)** | $|\Delta \text{DSC}|$ (pp) $\downarrow$ | `0.66` (Dense Decoding) | **`0.06`** (11.4x stabler) |
 | **In-Domain Segmentation (Kvasir-SEG / ISIC 2018)** | Test DSC (%) $\uparrow$ | `89.26` (Dense Ceiling) | **`88.66` / `90.57`** |
-| **Parameter & Latency Efficiency (1024x1024)** | Trainable Params / Latency | `5.20M` / `99.58 ms` | **`4.54M`** / **`94.67 ms`** |
+| **Parameter & Latency Efficiency (1024x1024)** | Trainable Params / Latency | `5.20M` / `94.51 ms` | **`4.54M`** / **`94.13 ms`** |
 
 All measured JSON metrics, auto-generated LaTeX tables, and 300-DPI qualitative segmentation comparisons are archived in [`results/`](./results/).
 
@@ -26,8 +27,8 @@ All measured JSON metrics, auto-generated LaTeX tables, and 300-DPI qualitative 
 ├── cma_sam_model.py                      # LoRA-SAM + CLIP + JointFeatureFusion + Bounded AAG + JointLoss
 ├── datasets_and_metrics.py               # Deterministic splits, 16-core 1024x1024 cache, DSC/IoU/ALE/Latency
 ├── run_experiments.py                    # DDP & single-GPU trainer, ablations, plotting & LaTeX exporter
-├── requirements.txt
-├── paper/                                # Camera-ready IEEEtran LaTeX manuscript, BibTeX & figures                      # Python dependencies
+├── requirements.txt                      # Python dependencies
+├── paper/                                # Camera-ready IEEEtran LaTeX source, BibTeX, figures & final.pdf
 ├── results/
 │   ├── *.json                            # Measured experimental metrics (Tables II-VIII, Figs 7-12)
 │   ├── real_experiment_tables_and_figures.tex
