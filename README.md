@@ -26,7 +26,8 @@ All measured JSON metrics, auto-generated LaTeX tables, and 300-DPI qualitative 
 ├── cma_sam_model.py                      # LoRA-SAM + CLIP + JointFeatureFusion + Bounded AAG + JointLoss
 ├── datasets_and_metrics.py               # Deterministic splits, 16-core 1024x1024 cache, DSC/IoU/ALE/Latency
 ├── run_experiments.py                    # DDP & single-GPU trainer, ablations, plotting & LaTeX exporter
-├── requirements.txt                      # Python dependencies
+├── requirements.txt
+├── paper/                                # Camera-ready IEEEtran LaTeX manuscript, BibTeX & figures                      # Python dependencies
 ├── results/
 │   ├── *.json                            # Measured experimental metrics (Tables II-VIII, Figs 7-12)
 │   ├── real_experiment_tables_and_figures.tex
