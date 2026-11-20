@@ -1258,7 +1258,7 @@ def export_latex_snippets(output_dir: str) -> str:
         d2 = json.loads(f_t2.read_text(encoding="utf-8"))
         rows = []
         for ds_name, vals in d2.items():
-            cite = "\\cite{jha2020kvasir}" if "Kvasir" in ds_name else "\\cite{codella2018skin}"
+            cite = "\\cite{jha2020kvasir}" if "Kvasir" in ds_name else ("\\cite{tschandl2018ham10000}" if "HAM" in ds_name else "\\cite{codella2018skin}")
             rows.append(
                 f"{ds_name} {cite} & {vals['modality']} & {vals['train']} & {vals['val']} & {vals['test']} \\\\"
             )

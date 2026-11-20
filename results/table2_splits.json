@@ -10,5 +10,11 @@
     "train": 2075,
     "val": 259,
     "test": 260
+  },
+  "HAM10000": {
+    "modality": "Dermatology",
+    "train": 8012,
+    "val": 1002,
+    "test": 1001
   }
 }

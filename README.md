@@ -1,12 +1,14 @@
 # CMA-SAM: Cross-Modal Anchor Generation for Text-Driven Medical Image Segmentation
 
-Official PyTorch implementation and empirical benchmark suite for **CMA-SAM** (*Cross-Modal Anchor Generation for Text-Driven Medical Image Segmentation*).
+Official PyTorch implementation, empirical benchmark suite, and camera-ready manuscript for **CMA-SAM** (*Cross-Modal Anchor Generation for Text-Driven Medical Image Segmentation*).
 
-CMA-SAM bridges continuous vision-language representations and the discrete coordinate-driven prompt encoder of the Segment Anything Model (SAM). By fusing LoRA-adapted SAM visual features (`facebook/sam-vit-base`) with frozen CLIP text embeddings (`openai/clip-vit-base-patch32`) via Bidirectional Cross-Attention and regressing bounded Spatial Softmax point anchors alongside a global bounding box, CMA-SAM decouples semantic target localization from high-frequency boundary delineation without requiring manual geometric prompts at inference time.
+📄 **[Paper PDF (`paper/final.pdf`)](./paper/final.pdf)** | 📝 **[LaTeX Source (`paper/final.tex`)](./paper/final.tex)** | 📊 **[Measured Metrics (`results/`)](./results/)**
+
+CMA-SAM bridges continuous vision-language representations and the discrete coordinate-driven prompt encoder of the Segment Anything Model (SAM). By fusing LoRA-adapted SAM visual features (`facebook/sam-vit-base`) with frozen CLIP text embeddings (`openai/clip-vit-base-patch32`) via Bidirectional Cross-Attention and regressing bounded Spatial Softmax point anchors ($S = c\tanh(f_{\text{conv}}(M))$) alongside a global center-size bounding box, CMA-SAM decouples semantic target localization from high-frequency boundary delineation. During training, zero-cost geometric anchor targets are extracted directly from binary ground-truth masks, while inference requires **only an input image and a text query** with zero manual prompts.
 
 ## Empirical Highlights
 
-Evaluated on **Kvasir-SEG** (gastrointestinal endoscopy, `800 / 100 / 100`), **ISIC 2018 Task 1** (dermoscopy, `2075 / 259 / 260`), and external cross-cohort **HAM10000** (dermoscopy, `8012 / 1002 / 1001`) on 2x NVIDIA A800 (80 GB PCIe) GPUs:
+Evaluated across **Kvasir-SEG** (gastrointestinal endoscopy, `800 / 100 / 100`), **ISIC 2018 Task 1** (dermoscopy, `2075 / 259 / 260`), and external cross-cohort **HAM10000** (dermoscopy, `8012 / 1002 / 1001`) on 2x NVIDIA A800 (80 GB PCIe) GPUs:
 
 | Evaluation Suite | Metric | Baseline | CMA-SAM (Ours) |
 | :--- | :--- | :---: | :---: |
@@ -18,7 +20,7 @@ Evaluated on **Kvasir-SEG** (gastrointestinal endoscopy, `800 / 100 / 100`), **I
 | **In-Domain Segmentation (Kvasir-SEG / ISIC 2018)** | Test DSC (%) $\uparrow$ | `89.26` (Dense Ceiling) | **`88.66` / `90.57`** |
 | **Parameter & Latency Efficiency (1024x1024)** | Trainable Params / Latency | `5.20M` / `94.51 ms` | **`4.54M`** / **`94.13 ms`** |
 
-All measured JSON metrics, auto-generated LaTeX tables, and 300-DPI qualitative segmentation comparisons are archived in [`results/`](./results/).
+All measured JSON metrics, auto-generated LaTeX snippets, and 300-DPI qualitative overlays are archived in [`results/`](./results/).
 
 ## Repository Structure
 
@@ -28,7 +30,11 @@ All measured JSON metrics, auto-generated LaTeX tables, and 300-DPI qualitative 
 ├── datasets_and_metrics.py               # Deterministic splits, 16-core 1024x1024 cache, DSC/IoU/ALE/Latency
 ├── run_experiments.py                    # DDP & single-GPU trainer, ablations, plotting & LaTeX exporter
 ├── requirements.txt                      # Python dependencies
-├── paper/                                # Camera-ready IEEEtran LaTeX source, BibTeX, figures & final.pdf
+├── paper/
+│   ├── final.tex                         # Camera-ready IEEEtran manuscript with TikZ/PGFPlots figures
+│   ├── references.bib                    # Complete BibTeX bibliography
+│   ├── final.pdf                         # Compiled camera-ready PDF manuscript
+│   └── figures/                          # Embedded 300-DPI qualitative PDF overlays (Figs 9 & 13)
 ├── results/
 │   ├── *.json                            # Measured experimental metrics (Tables II-VIII, Figs 7-12)
 │   ├── real_experiment_tables_and_figures.tex
@@ -50,23 +56,31 @@ pip install -r requirements.txt
 
 ## Dataset Preparation
 
-Download **Kvasir-SEG** and **ISIC 2018** (and optionally **HAM10000**) into `./data/`:
+Download **Kvasir-SEG**, **ISIC 2018**, and **HAM10000** into `./data/`:
 
 ```bash
-python3 scripts/download_datasets.py --data_dir ./data --datasets kvasir isic2018
-# Optional: include HAM10000 zero-shot evaluation cohort
-python3 scripts/download_datasets.py --data_dir ./data --datasets ham10000
+python3 scripts/download_datasets.py --data_dir ./data --datasets all
 ```
 
 ## Running the Full Experimental Suite
 
-Launch the complete end-to-end training, ablation, efficiency, and figure-generation pipeline (supports automatic checkpoint resume and multi-GPU PyTorch DDP):
+Launch the complete end-to-end training, ablation, efficiency, and figure-generation pipeline (supports automatic mid-epoch checkpoint resume and multi-GPU PyTorch DDP):
 
 ```bash
 NUM_GPUS=2 BATCH_SIZE=2 GRAD_ACCUM=8 bash scripts/run_all_rtx3090x4.sh
 ```
 
-Individual stages can also be executed standalone via `--mode` (`splits`, `zeroshot`, `fewshot`, `ablation_aag`, `ablation_tau`, `ablation_fusion`, `prompt_complexity`, `efficiency_and_ale`, `qualitative`, `export_latex`).
+Individual stages can also be executed standalone via `--mode` (`cache_resized`, `splits`, `zeroshot`, `fewshot`, `ablation_aag`, `ablation_tau`, `ablation_fusion`, `prompt_complexity`, `efficiency_and_ale`, `qualitative`, `export_latex`).
+
+## Compiling the Manuscript
+
+```bash
+cd paper
+pdflatex -interaction=nonstopmode final.tex
+bibtex final
+pdflatex -interaction=nonstopmode final.tex
+pdflatex -interaction=nonstopmode final.tex
+```
 
 ## License
 
